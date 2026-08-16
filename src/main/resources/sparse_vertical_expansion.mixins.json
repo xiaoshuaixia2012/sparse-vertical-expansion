@@ -1,0 +1,35 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "cn.xiaoshuaixia.sparseverticalexpansion.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BlockCollisionsMixin",
+    "BlockPosArgumentMixin",
+    "ChunkAccessMixin",
+    "ChunkHolderMixin",
+    "CloneCommandsMixin",
+    "CloneDimensionAndPositionAccessor",
+    "compat.WorldEditNeoForgeWorldMixin",
+    "compat.WorldEditLocatedBlockListMixin",
+    "compat.WorldEditNativeAccessMixin",
+    "compat.WorldEditRegionVisitorMixin",
+    "EntityMixin",
+    "FillCommandMixin",
+    "FriendlyByteBufMixin",
+    "LevelMixin",
+    "LevelChunkMixin",
+    "ServerGamePacketListenerImplMixin",
+    "SetBlockCommandMixin"
+  ],
+  "client": [
+    "client.BlockStatePredictionHandlerMixin",
+    "client.ChunkBorderRendererMixin",
+    "client.LevelRendererMixin",
+    "client.RenderChunkMixin",
+    "client.ViewAreaMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

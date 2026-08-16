@@ -1,0 +1,15 @@
+.gradle/
+build/
+out/
+run/
+runs/
+repo/
+src/generated/
+docs/
+PRODUCT.md
+DESIGN.md
+.idea/
+*.iml
+*.ipr
+*.iws
+*.log
