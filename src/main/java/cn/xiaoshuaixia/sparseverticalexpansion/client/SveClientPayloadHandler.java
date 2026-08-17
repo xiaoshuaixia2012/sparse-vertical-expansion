@@ -31,13 +31,18 @@ public final class SveClientPayloadHandler {
         LevelChunk chunk = level.getChunk(payload.x() >> 4, payload.z() >> 4);
         SparseSectionStorage storage = chunk.getData(SveAttachments.EXTENDED_SECTIONS.get());
         int sectionY = SectionPos.blockToSectionCoord(payload.y());
+        boolean wasNonAir = storage.getSection(sectionY) != null;
         level.setServerVerifiedBlockState(pos, payload.state(), 19);
+        boolean isNonAir = storage.getSection(sectionY) != null;
+        SimulationRules rules = SimulationRules.fromMask(payload.rulesMask());
         ClientSparseSections.track(
                 level,
                 chunk.getPos(),
                 storage,
                 sectionY,
-                SimulationRules.fromMask(payload.rulesMask()));
+                rules);
+        RendererCompat.syncSection(
+                chunk.getPos().x, sectionY, chunk.getPos().z, rules.rendering(), wasNonAir, isNonAir);
         markSectionDirty(payload.x(), payload.y(), payload.z());
     }
 

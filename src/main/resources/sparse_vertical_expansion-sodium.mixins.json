@@ -1,0 +1,16 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "cn.xiaoshuaixia.sparseverticalexpansion.mixin.compat.sodium",
+  "plugin": "cn.xiaoshuaixia.sparseverticalexpansion.mixin.compat.sodium.SodiumCompatMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "SodiumRenderSectionManagerMixin",
+    "SodiumLevelSliceMixin",
+    "SodiumClonedChunkSectionCacheMixin",
+    "SodiumWorldRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

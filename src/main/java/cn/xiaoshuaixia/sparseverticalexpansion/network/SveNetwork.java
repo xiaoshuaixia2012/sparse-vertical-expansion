@@ -1,6 +1,7 @@
 package cn.xiaoshuaixia.sparseverticalexpansion.network;
 
 import cn.xiaoshuaixia.sparseverticalexpansion.client.ClientSparseSections;
+import cn.xiaoshuaixia.sparseverticalexpansion.client.RendererCompat;
 import cn.xiaoshuaixia.sparseverticalexpansion.client.SveClientPayloadHandler;
 import cn.xiaoshuaixia.sparseverticalexpansion.registry.SveAttachments;
 import cn.xiaoshuaixia.sparseverticalexpansion.server.SvePermissions;
@@ -16,6 +17,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.level.ChunkWatchEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -71,6 +74,11 @@ public final class SveNetwork {
         if (event.getLevel() instanceof Level level && level.isClientSide()) {
             SparseSectionStorage storage = event.getChunk().getExistingDataOrNull(SveAttachments.EXTENDED_SECTIONS.get());
             if (storage != null) {
+                int chunkX = event.getChunk().getPos().x;
+                int chunkZ = event.getChunk().getPos().z;
+                for (int sectionY : storage.sectionYs()) {
+                    RendererCompat.onSectionRemoved(chunkX, sectionY, chunkZ);
+                }
             }
             ClientSparseSections.untrack(level, event.getChunk().getPos());
         }
@@ -99,6 +107,7 @@ public final class SveNetwork {
         context.enqueueWork(() -> handleSectionOnClient(payload));
     }
 
+    @OnlyIn(Dist.CLIENT)
     private static void handleSectionOnClient(ExtendedSectionPayload payload) {
         Level level = net.minecraft.client.Minecraft.getInstance().level;
         if (level == null) {
@@ -106,12 +115,17 @@ public final class SveNetwork {
         }
         LevelChunk chunk = level.getChunk(payload.chunkX(), payload.chunkZ());
         SparseSectionStorage storage = chunk.getData(SveAttachments.EXTENDED_SECTIONS.get());
+        boolean wasNonAir = storage.getSection(payload.sectionY()) != null;
         storage.replaceSection(
                 payload.sectionY(),
                 payload.stateIds(),
                 level.registryAccess().registryOrThrow(Registries.BIOME));
+        boolean isNonAir = storage.getSection(payload.sectionY()) != null;
+        SimulationRules rules = SimulationRules.fromMask(payload.rulesMask());
         ClientSparseSections.track(
-                level, chunk.getPos(), storage, payload.sectionY(), SimulationRules.fromMask(payload.rulesMask()));
+                level, chunk.getPos(), storage, payload.sectionY(), rules);
+        RendererCompat.syncSection(
+                chunk.getPos().x, payload.sectionY(), chunk.getPos().z, rules.rendering(), wasNonAir, isNonAir);
         SveClientPayloadHandler.markSectionDirty(payload.chunkX() << 4, payload.sectionY() << 4, payload.chunkZ() << 4);
     }
 

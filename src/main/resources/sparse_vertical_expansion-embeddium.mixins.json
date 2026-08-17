@@ -1,0 +1,17 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "cn.xiaoshuaixia.sparseverticalexpansion.mixin.compat.embeddium",
+  "plugin": "cn.xiaoshuaixia.sparseverticalexpansion.mixin.compat.embeddium.EmbeddiumCompatMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "EmbeddiumRenderSectionManagerMixin",
+    "EmbeddiumWorldSliceMixin",
+    "EmbeddiumClonedChunkSectionCacheMixin",
+    "EmbeddiumOcclusionCullerMixin",
+    "EmbeddiumWorldRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

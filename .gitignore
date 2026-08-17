@@ -1,9 +1,11 @@
 .gradle/
+.gradle-home/
 build/
 out/
 run/
 runs/
 repo/
+libs/
 src/generated/
 docs/
 PRODUCT.md

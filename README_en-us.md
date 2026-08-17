@@ -4,11 +4,11 @@
 
 Sparse Vertical Expansion (SVE) is an experimental Minecraft mod currently supporting Minecraft 1.21.1 on NeoForge. It gives selected chunk regions on-demand access to heights far beyond vanilla without increasing the entire dimension's continuous build height. Each chunk can reach approximately ±8 million blocks, while the default limit is approximately ±2 million blocks.
 
-> Current version: `0.1.0-beta.1`. **Back up your worlds first** and use this only in test worlds.  
-> This version is **not compatible with Sodium, Embeddium, or other renderer-replacement mods**.
+> Current version: `0.1.0-beta.2`. **Back up your worlds first** and use this only in test worlds.  
+> This version is compatible with Sodium `0.8.12/0.8.13` and Embeddium `1.0.x` (both beta-stage). Other versions are untested, and **other renderer-replacement mods are incompatible**.
 
 - Design: xiaoshuaixia
-- Development: ChatGPT (AI)
+- Development: gpt (AI), deepseek (AI)
 
 ## Core Features
 
@@ -62,7 +62,7 @@ Configuration can only be changed by the server or the owner of a single-player 
 ## Compatibility and Limitations
 
 - Currently supports only Minecraft 1.21.1, NeoForge, and Java 21.
-- The Sodium 0.8.12/0.8.13 sparse-section compatibility layer is under development. Until it is complete, use vanilla chunk rendering to test high-altitude structures.
+- The Sodium `0.8.12/0.8.13` and Embeddium `1.0.x` sparse-section compatibility layers are implemented (optional reflection bridge + optional mixins; these mods are never bundled, and the vanilla path is untouched when they are absent). Shaders have been verified (including shadows); Iris compatibility is still being tested.
 - Block entities are not supported at extended heights yet.
 - Sparse lighting is not implemented yet; high-altitude blocks currently use a full-bright fallback.
 - Scheduled ticks, random ticks, fluid ticks, redstone, mob spawning, weather, and other segmented simulation rules are not implemented yet.

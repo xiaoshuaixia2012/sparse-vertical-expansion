@@ -64,6 +64,18 @@ public final class ClientSparseSections {
         return false;
     }
 
+    /** Iterates every renderable tracked sparse section for the current level. */
+    public static void forEachRenderableSection(Level level, SectionVisitor visitor) {
+        ensureLevel(level);
+        for (Entry entry : CHUNKS.values()) {
+            for (int sectionY : entry.storage().sectionYs()) {
+                if (entry.rulesBySection().getOrDefault(sectionY, SimulationRules.DEFAULT).rendering()) {
+                    visitor.accept(entry.chunkX(), sectionY, entry.chunkZ());
+                }
+            }
+        }
+    }
+
     private static void ensureLevel(Level level) {
         if (currentLevel != level) {
             currentLevel = level;
@@ -72,5 +84,10 @@ public final class ClientSparseSections {
     }
 
     public record Entry(int chunkX, int chunkZ, SparseSectionStorage storage, Map<Integer, SimulationRules> rulesBySection) {
+    }
+
+    @FunctionalInterface
+    public interface SectionVisitor {
+        void accept(int chunkX, int sectionY, int chunkZ);
     }
 }

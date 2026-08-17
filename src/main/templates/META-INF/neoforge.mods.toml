@@ -53,6 +53,15 @@ Sparse, on-demand vertical world expansion for selected Minecraft regions.
 [[mixins]]
 config="${mod_id}.mixins.json"
 
+# Optional Sodium compatibility mixins. `required=false` + `defaultRequire=0` + a gating
+# mixin plugin mean this config is a no-op unless a supported Sodium version is present.
+[[mixins]]
+config="${mod_id}-sodium.mixins.json"
+
+# Optional Embeddium (铷) compatibility mixins, gated the same way on a supported Embeddium version.
+[[mixins]]
+config="${mod_id}-embeddium.mixins.json"
+
 # The [[accessTransformers]] block allows you to declare where your AT file is.
 # If this block is omitted, a fallback attempt will be made to load an AT from META-INF/accesstransformer.cfg
 #[[accessTransformers]]
@@ -87,6 +96,41 @@ config="${mod_id}.mixins.json"
     versionRange="${minecraft_version_range}"
     ordering="NONE"
     side="BOTH"
+
+# Hard-reject unsupported Sodium major versions instead of silently disabling the compat layer.
+# Supported: 0.8.x (the 1.21.1 backport line). Rejected: 0.9+ (future internal API) and pre-0.8 (0.6/0.7 forks).
+[[dependencies.${mod_id}]]
+    modId="sodium"
+    type="incompatible"
+    versionRange="[0.9.0,)"
+    reason="SVE sparse-section rendering only supports Sodium 0.8.x for 1.21.1; please downgrade Sodium."
+    ordering="NONE"
+    side="CLIENT"
+
+[[dependencies.${mod_id}]]
+    modId="sodium"
+    type="incompatible"
+    versionRange="(,0.8.0)"
+    reason="SVE sparse-section rendering only supports Sodium 0.8.x for 1.21.1; please upgrade Sodium."
+    ordering="NONE"
+    side="CLIENT"
+
+# Hard-reject unsupported Embeddium major versions. Supported: 1.0.x. Rejected: 2.0+ and pre-1.0.
+[[dependencies.${mod_id}]]
+    modId="embeddium"
+    type="incompatible"
+    versionRange="[2.0.0,)"
+    reason="SVE sparse-section rendering only supports Embeddium 1.0.x for 1.21.1; please downgrade Embeddium."
+    ordering="NONE"
+    side="CLIENT"
+
+[[dependencies.${mod_id}]]
+    modId="embeddium"
+    type="incompatible"
+    versionRange="(,1.0.0)"
+    reason="SVE sparse-section rendering only supports Embeddium 1.0.x for 1.21.1; please upgrade Embeddium."
+    ordering="NONE"
+    side="CLIENT"
 
 # Features are specific properties of the game environment, that you may want to declare you require. This example declares
 # that your mod requires GL version 3.2 or higher. Other features will be added. They are side aware so declaring this won't
