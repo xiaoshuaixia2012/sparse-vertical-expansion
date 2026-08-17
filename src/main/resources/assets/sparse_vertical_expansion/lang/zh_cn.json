@@ -28,5 +28,6 @@
   "screen.sve.rule.rendering": "渲染",
   "screen.sve.rule.collision": "碰撞",
   "screen.sve.rule.entity_interaction": "实体交互",
+  "screen.sve.rule.lighting": "光照",
   "screen.sve.rule.none": "无"
 }

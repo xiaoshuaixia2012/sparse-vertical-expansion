@@ -7,6 +7,7 @@ import cn.xiaoshuaixia.sparseverticalexpansion.network.ExtendedSectionPayload;
 import cn.xiaoshuaixia.sparseverticalexpansion.network.CreateRegionLayerPayload;
 import cn.xiaoshuaixia.sparseverticalexpansion.network.DeleteRegionLayerPayload;
 import cn.xiaoshuaixia.sparseverticalexpansion.network.OpenRegionEditorPayload;
+import cn.xiaoshuaixia.sparseverticalexpansion.lighting.SparseLightEngine;
 import cn.xiaoshuaixia.sparseverticalexpansion.network.SveInteraction;
 import cn.xiaoshuaixia.sparseverticalexpansion.registry.SveAttachments;
 import cn.xiaoshuaixia.sparseverticalexpansion.server.SvePermissions;
@@ -24,6 +25,7 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.gametest.framework.GameTest;
@@ -43,6 +45,7 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.storage.ChunkSerializer;
@@ -305,6 +308,94 @@ public final class SparseSectionStorageGameTests {
         chunk.setBlockState(high.above(), Blocks.AIR.defaultBlockState(), false);
         chunk.setBlockState(low, Blocks.AIR.defaultBlockState(), false);
         helper.assertTrue(chunk.getData(SveAttachments.EXTENDED_SECTIONS.get()).sectionCount() == 0, "last blocks must reclaim both sections");
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void relightsSparseSections(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos rawOrigin = helper.absolutePos(BlockPos.ZERO).offset(8192, 0, 0);
+        BlockPos origin = new BlockPos(rawOrigin.getX() & ~15, rawOrigin.getY(), rawOrigin.getZ() & ~15);
+        LevelChunk chunk = level.getChunkAt(origin);
+        SveWorldData.get(level).addRegion(new VerticalRegion(
+                "gametest_lighting_" + chunk.getPos().x + "_" + chunk.getPos().z,
+                level.dimension().location(),
+                chunk.getPos().x,
+                chunk.getPos().x,
+                chunk.getPos().z,
+                chunk.getPos().z,
+                List.of(new VerticalLayer(
+                        ExtendedYRange.aligned(100000, 100000),
+                        SimulationRules.fromMask(SimulationRules.DEFAULT.mask() | SimulationRules.LIGHTING)))));
+
+        BlockPos base = new BlockPos(origin.getX(), 100000, origin.getZ());
+        level.setBlockAndUpdate(base.offset(5, 0, 5), Blocks.GLOWSTONE.defaultBlockState());
+        level.setBlockAndUpdate(base.offset(8, 1, 8), Blocks.STONE.defaultBlockState());
+        level.setBlockAndUpdate(base.offset(8, 2, 8), Blocks.STONE.defaultBlockState());
+        level.setBlockAndUpdate(base.offset(10, 0, 10), Blocks.STONE.defaultBlockState());
+
+        helper.assertTrue(
+                SparseLightEngine.relightChunk(chunk),
+                "relightChunk must write light for the centre chunk");
+
+        SparseSectionStorage storage = chunk.getData(SveAttachments.EXTENDED_SECTIONS.get());
+        int sectionY = SectionPos.blockToSectionCoord(100000);
+        DataLayer block = storage.getBlockLight(sectionY);
+        DataLayer sky = storage.getSkyLight(sectionY);
+        helper.assertTrue(block != null && sky != null, "separated sky and block light must both be computed");
+
+        helper.assertTrue(block.get(5, 0, 5) == 15, "glowstone cell must hold its 15 emission");
+        helper.assertTrue(block.get(6, 0, 5) == 14, "air one block from glowstone must be 14");
+        helper.assertTrue(block.get(9, 0, 5) == 11, "air four blocks from glowstone must be 11");
+
+        helper.assertTrue(sky.get(10, 0, 10) == 15, "an isolated block under open sky must be 15");
+        helper.assertTrue(sky.get(8, 2, 8) == 15, "the top stone of a column must be 15");
+        helper.assertTrue(sky.get(8, 1, 8) == 0, "the stone directly under another stone must be 0");
+
+        for (BlockPos pos : new BlockPos[] {
+                base.offset(5, 0, 5), base.offset(8, 1, 8), base.offset(8, 2, 8), base.offset(10, 0, 10)
+        }) {
+            level.removeBlock(pos, false);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void relightsAcrossSectionBoundary(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos rawOrigin = helper.absolutePos(BlockPos.ZERO).offset(9216, 0, 0);
+        BlockPos origin = new BlockPos(rawOrigin.getX() & ~15, rawOrigin.getY(), rawOrigin.getZ() & ~15);
+        LevelChunk chunk = level.getChunkAt(origin);
+        SveWorldData.get(level).addRegion(new VerticalRegion(
+                "gametest_lighting_across_" + chunk.getPos().x + "_" + chunk.getPos().z,
+                level.dimension().location(),
+                chunk.getPos().x,
+                chunk.getPos().x,
+                chunk.getPos().z,
+                chunk.getPos().z,
+                List.of(new VerticalLayer(
+                        ExtendedYRange.aligned(100000, 100031),
+                        SimulationRules.fromMask(SimulationRules.DEFAULT.mask() | SimulationRules.LIGHTING)))));
+
+        BlockPos base = new BlockPos(origin.getX(), 100000, origin.getZ());
+        // glowstone at section 6250 top (local 5,15,5); stone two blocks above in section 6251.
+        level.setBlockAndUpdate(base.offset(5, 15, 5), Blocks.GLOWSTONE.defaultBlockState());
+        level.setBlockAndUpdate(base.offset(5, 17, 5), Blocks.STONE.defaultBlockState());
+
+        helper.assertTrue(SparseLightEngine.relightChunk(chunk), "relight must write light");
+
+        SparseSectionStorage storage = chunk.getData(SveAttachments.EXTENDED_SECTIONS.get());
+        DataLayer blockUpper = storage.getBlockLight(6251);
+        helper.assertTrue(blockUpper != null, "section 6251 block light must be computed");
+        helper.assertTrue(
+                blockUpper.get(5, 0, 5) == 14,
+                "air one block above the glowstone across the section boundary must be 14, got " + blockUpper.get(5, 0, 5));
+        helper.assertTrue(
+                blockUpper.get(5, 1, 5) == 0,
+                "stone two blocks above the glowstone must be dark, got " + blockUpper.get(5, 1, 5));
+
+        level.removeBlock(base.offset(5, 15, 5), false);
+        level.removeBlock(base.offset(5, 17, 5), false);
         helper.succeed();
     }
 

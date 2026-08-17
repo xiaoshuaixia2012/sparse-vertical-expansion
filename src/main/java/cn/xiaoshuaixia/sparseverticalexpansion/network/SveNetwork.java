@@ -66,7 +66,9 @@ public final class SveNetwork {
                             event.getPos().z,
                             sectionY,
                             rulesAt(level, sectionOrigin).mask(),
-                            storage.copyStateIds(sectionY)));
+                            storage.copyStateIds(sectionY),
+                            storage.skyLightBytes(sectionY),
+                            storage.blockLightBytes(sectionY)));
         }
     }
 
@@ -119,6 +121,8 @@ public final class SveNetwork {
         storage.replaceSection(
                 payload.sectionY(),
                 payload.stateIds(),
+                payload.skyLight(),
+                payload.blockLight(),
                 level.registryAccess().registryOrThrow(Registries.BIOME));
         boolean isNonAir = storage.getSection(payload.sectionY()) != null;
         SimulationRules rules = SimulationRules.fromMask(payload.rulesMask());
@@ -196,7 +200,7 @@ public final class SveNetwork {
         }
     }
 
-    private static SimulationRules rulesAt(ServerLevel level, BlockPos pos) {
+    public static SimulationRules rulesAt(ServerLevel level, BlockPos pos) {
         return SveWorldData.get(level)
                 .findRegion(level.dimension().location(), pos.getX() >> 4, pos.getZ() >> 4, pos.getY())
                 .flatMap(region -> region.findLayer(pos.getY()))

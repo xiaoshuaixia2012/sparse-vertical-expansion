@@ -24,6 +24,7 @@ public final class EmbeddiumBytecodeContractTest {
     private static final String SECTION = "org/embeddedt/embeddium/impl/render/chunk/RenderSection";
     private static final String UPDATE_TYPE = "org/embeddedt/embeddium/impl/render/chunk/ChunkUpdateType";
     private static final String SLICE = "org/embeddedt/embeddium/impl/world/WorldSlice";
+    private static final String CCS = "org/embeddedt/embeddium/impl/world/cloned/ClonedChunkSection";
     private static final String CACHE = "org/embeddedt/embeddium/impl/world/cloned/ClonedChunkSectionCache";
     private static final String CTX = "org/embeddedt/embeddium/impl/world/cloned/ChunkRenderContext";
     private static final String CULLER = "org/embeddedt/embeddium/impl/render/chunk/occlusion/OcclusionCuller";
@@ -64,6 +65,12 @@ public final class EmbeddiumBytecodeContractTest {
                 "(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/SectionPos;"
                         + "Lorg/embeddedt/embeddium/impl/world/cloned/ClonedChunkSectionCache;)"
                         + "Lorg/embeddedt/embeddium/impl/world/cloned/ChunkRenderContext;");
+
+        // ClonedChunkSection light-injection mixin members.
+        Sig ccs = signature(classes, CCS);
+        ccs.requireMethod("copyLightArray",
+                "(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/level/LightLayer;"
+                        + "Lnet/minecraft/core/SectionPos;)Lnet/minecraft/world/level/chunk/DataLayer;");
 
         Sig cache = signature(classes, CACHE);
         cache.requireMethod("clone", "(III)Lorg/embeddedt/embeddium/impl/world/cloned/ClonedChunkSection;");

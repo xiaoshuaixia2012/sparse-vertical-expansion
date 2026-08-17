@@ -24,6 +24,7 @@ public final class SodiumBytecodeContractTest {
     private static final String RSM = "net/caffeinemc/mods/sodium/client/render/chunk/RenderSectionManager";
     private static final String SECTION = "net/caffeinemc/mods/sodium/client/render/chunk/RenderSection";
     private static final String SLICE = "net/caffeinemc/mods/sodium/client/world/LevelSlice";
+    private static final String CCS = "net/caffeinemc/mods/sodium/client/world/cloned/ClonedChunkSection";
     private static final String CACHE = "net/caffeinemc/mods/sodium/client/world/cloned/ClonedChunkSectionCache";
     private static final String WORLD = "net/caffeinemc/mods/sodium/client/render/SodiumWorldRenderer";
 
@@ -65,6 +66,12 @@ public final class SodiumBytecodeContractTest {
                 "(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/SectionPos;"
                         + "Lnet/caffeinemc/mods/sodium/client/world/cloned/ClonedChunkSectionCache;)"
                         + "Lnet/caffeinemc/mods/sodium/client/world/cloned/ChunkRenderContext;");
+
+        // ClonedChunkSection light-injection mixin members.
+        Sig ccs = signature(classes, CCS);
+        ccs.requireMethod("copyLightArray",
+                "(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/level/LightLayer;"
+                        + "Lnet/minecraft/core/SectionPos;)Lnet/minecraft/world/level/chunk/DataLayer;");
 
         // ClonedChunkSectionCache mixin members.
         Sig cache = signature(classes, CACHE);

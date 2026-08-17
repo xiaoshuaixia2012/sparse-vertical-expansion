@@ -4,8 +4,11 @@ public record SimulationRules(int mask) {
     public static final int RENDERING = 1;
     public static final int COLLISION = 1 << 1;
     public static final int ENTITY_INTERACTION = 1 << 2;
-    public static final int KNOWN_MASK = RENDERING | COLLISION | ENTITY_INTERACTION;
-    public static final SimulationRules DEFAULT = new SimulationRules(KNOWN_MASK);
+    public static final int LIGHTING = 1 << 3;
+    public static final int KNOWN_MASK = RENDERING | COLLISION | ENTITY_INTERACTION | LIGHTING;
+    /** Default-on rules. Lighting is intentionally off by default because it involves per-chunk computation. */
+    public static final int DEFAULT_MASK = RENDERING | COLLISION | ENTITY_INTERACTION;
+    public static final SimulationRules DEFAULT = new SimulationRules(DEFAULT_MASK);
 
     public SimulationRules {
         if ((mask & ~KNOWN_MASK) != 0) {
@@ -34,6 +37,10 @@ public record SimulationRules(int mask) {
 
     public boolean entityInteraction() {
         return (mask & ENTITY_INTERACTION) != 0;
+    }
+
+    public boolean lighting() {
+        return (mask & LIGHTING) != 0;
     }
 
 }

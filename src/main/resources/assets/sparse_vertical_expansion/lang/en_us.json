@@ -28,5 +28,6 @@
   "screen.sve.rule.rendering": "Rendering",
   "screen.sve.rule.collision": "Collision",
   "screen.sve.rule.entity_interaction": "Entity interaction (fixed on in MVP)",
+  "screen.sve.rule.lighting": "Lighting",
   "screen.sve.rule.none": "None"
 }

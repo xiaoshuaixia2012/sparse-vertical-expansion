@@ -1,5 +1,6 @@
 package cn.xiaoshuaixia.sparseverticalexpansion.mixin.client;
 
+import cn.xiaoshuaixia.sparseverticalexpansion.client.SparseLight;
 import cn.xiaoshuaixia.sparseverticalexpansion.world.ExtendedYRange;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import java.util.HashMap;
@@ -48,7 +49,10 @@ abstract class LevelRendererMixin {
     private static void sve$extendedLight(
             BlockAndTintGetter level, BlockState state, BlockPos pos, CallbackInfoReturnable<Integer> callback) {
         if (pos.getY() < ExtendedYRange.VANILLA_MIN_Y || pos.getY() > ExtendedYRange.VANILLA_MAX_Y) {
-            callback.setReturnValue(LightTexture.FULL_BRIGHT);
+            int packed = SparseLight.getPackedLight(level, state, pos);
+            callback.setReturnValue(packed >= 0 ? packed : LightTexture.FULL_BRIGHT);
+            // setReturnValue alone does NOT stop the original getLightColor body; cancel() is what makes it win.
+            callback.cancel();
         }
     }
 

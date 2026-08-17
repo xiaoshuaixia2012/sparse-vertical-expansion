@@ -98,6 +98,8 @@ public abstract class SodiumRenderSectionManagerMixin {
         int sectionY = pos.getY();
         if (sectionY < this.level.getMinSection() || sectionY >= this.level.getMaxSection()) {
             cir.setReturnValue(true);
+            // setReturnValue alone does NOT stop the original body; cancel() is what makes the injected value win.
+            cir.cancel();
         }
     }
 

@@ -1,5 +1,6 @@
 package cn.xiaoshuaixia.sparseverticalexpansion.mixin;
 
+import cn.xiaoshuaixia.sparseverticalexpansion.lighting.SparseLightManager;
 import cn.xiaoshuaixia.sparseverticalexpansion.registry.SveAttachments;
 import cn.xiaoshuaixia.sparseverticalexpansion.network.SveNetwork;
 import cn.xiaoshuaixia.sparseverticalexpansion.storage.SparseSectionStorage;
@@ -76,6 +77,7 @@ abstract class LevelChunkMixin {
             chunk.setUnsaved(true);
             if (chunk.getLevel() instanceof ServerLevel level) {
                 SveNetwork.sendBlockUpdate(level, pos, state);
+                SparseLightManager.markDirty(level, pos);
             }
         }
         callback.setReturnValue(previous);

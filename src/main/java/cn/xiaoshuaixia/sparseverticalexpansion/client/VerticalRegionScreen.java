@@ -26,6 +26,7 @@ public final class VerticalRegionScreen extends Screen {
     private Checkbox rendering;
     private Checkbox collision;
     private Checkbox entityInteraction;
+    private Checkbox lighting;
     private Button create;
     private VerticalLayer selectedLayer;
     private int minY;
@@ -59,6 +60,8 @@ public final class VerticalRegionScreen extends Screen {
         entityInteraction = addRenderableWidget(Checkbox.builder(Component.translatable("screen.sve.rule.entity_interaction"), font)
                 .pos(rulesX, 173).selected(true).onValueChange((box, value) -> validate()).build());
         entityInteraction.active = false;
+        lighting = addRenderableWidget(Checkbox.builder(Component.translatable("screen.sve.rule.lighting"), font)
+                .pos(rulesX, 197).selected(false).onValueChange((box, value) -> validate()).build());
         create = addRenderableWidget(Button.builder(Component.translatable("screen.sve.region.create"), button -> confirm())
                 .bounds(width / 2 - 105, height - 32, 100, 20).build());
         addRenderableWidget(Button.builder(CommonComponents.GUI_CANCEL, button -> onClose())
@@ -150,10 +153,11 @@ public final class VerticalRegionScreen extends Screen {
         if (!create.active) {
             return;
         }
-        List<Component> enabled = new ArrayList<>(3);
+        List<Component> enabled = new ArrayList<>(4);
         if (rendering.selected()) enabled.add(Component.translatable("screen.sve.rule.rendering"));
         if (collision.selected()) enabled.add(Component.translatable("screen.sve.rule.collision"));
         if (entityInteraction.selected()) enabled.add(Component.translatable("screen.sve.rule.entity_interaction"));
+        if (lighting.selected()) enabled.add(Component.translatable("screen.sve.rule.lighting"));
         String rules = enabled.isEmpty()
                 ? Component.translatable("screen.sve.rule.none").getString()
                 : String.join("、", enabled.stream().map(Component::getString).toList());
@@ -177,7 +181,8 @@ public final class VerticalRegionScreen extends Screen {
     private int rulesMask() {
         return (rendering.selected() ? SimulationRules.RENDERING : 0)
                 | (collision.selected() ? SimulationRules.COLLISION : 0)
-                | (entityInteraction.selected() ? SimulationRules.ENTITY_INTERACTION : 0);
+                | (entityInteraction.selected() ? SimulationRules.ENTITY_INTERACTION : 0)
+                | (lighting.selected() ? SimulationRules.LIGHTING : 0);
     }
 
     private void confirmDelete(VerticalLayer layer) {

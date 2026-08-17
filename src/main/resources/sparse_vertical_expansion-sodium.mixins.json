@@ -8,6 +8,7 @@
     "SodiumRenderSectionManagerMixin",
     "SodiumLevelSliceMixin",
     "SodiumClonedChunkSectionCacheMixin",
+    "SodiumClonedChunkSectionMixin",
     "SodiumWorldRendererMixin"
   ],
   "injectors": {

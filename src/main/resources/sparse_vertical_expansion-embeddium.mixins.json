@@ -8,6 +8,7 @@
     "EmbeddiumRenderSectionManagerMixin",
     "EmbeddiumWorldSliceMixin",
     "EmbeddiumClonedChunkSectionCacheMixin",
+    "EmbeddiumClonedChunkSectionMixin",
     "EmbeddiumOcclusionCullerMixin",
     "EmbeddiumWorldRendererMixin"
   ],
