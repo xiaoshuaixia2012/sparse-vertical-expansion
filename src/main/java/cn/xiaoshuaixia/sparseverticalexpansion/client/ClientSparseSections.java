@@ -4,6 +4,7 @@ import cn.xiaoshuaixia.sparseverticalexpansion.storage.SparseSectionStorage;
 import cn.xiaoshuaixia.sparseverticalexpansion.world.SimulationRules;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.ChunkPos;
@@ -13,6 +14,14 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
 public final class ClientSparseSections {
     private static final Map<Long, Entry> CHUNKS = new HashMap<>();
     private static Level currentLevel;
+
+    /**
+     * Distinct absolute section Ys of every renderable sparse section. {@code hasRenderableSectionNear} is called once
+     * a frame while the camera is inside the vanilla build range, so it must not scan all tracked chunks every frame;
+     * this set is rebuilt lazily when tracking changes and queried in O(log n) via a range lookup.
+     */
+    private static final TreeSet<Integer> renderableSectionYs = new TreeSet<>();
+    private static boolean renderableSectionYsDirty = true;
 
     private ClientSparseSections() {
     }
@@ -29,11 +38,13 @@ public final class ClientSparseSections {
                 entry.rulesBySection().put(sectionY, rules);
             }
         }
+        renderableSectionYsDirty = true;
     }
 
     public static void untrack(Level level, ChunkPos pos) {
         ensureLevel(level);
         CHUNKS.remove(pos.toLong());
+        renderableSectionYsDirty = true;
     }
 
     public static SimulationRules rulesAt(Level level, BlockPos pos) {
@@ -52,16 +63,9 @@ public final class ClientSparseSections {
 
     public static boolean hasRenderableSectionNear(Level level, int cameraY, int radiusSections) {
         ensureLevel(level);
+        refreshRenderableSectionYs();
         int cameraSection = SectionPos.blockToSectionCoord(cameraY);
-        for (Entry entry : CHUNKS.values()) {
-            for (int sectionY : entry.storage().sectionYs()) {
-                if (Math.abs(sectionY - cameraSection) <= radiusSections
-                        && entry.rulesBySection().getOrDefault(sectionY, SimulationRules.DEFAULT).rendering()) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return !renderableSectionYs.subSet(cameraSection - radiusSections, cameraSection + radiusSections + 1).isEmpty();
     }
 
     /** Iterates every renderable tracked sparse section for the current level. */
@@ -76,10 +80,26 @@ public final class ClientSparseSections {
         }
     }
 
+    private static void refreshRenderableSectionYs() {
+        if (!renderableSectionYsDirty) {
+            return;
+        }
+        renderableSectionYs.clear();
+        for (Entry entry : CHUNKS.values()) {
+            for (int sectionY : entry.storage().sectionYs()) {
+                if (entry.rulesBySection().getOrDefault(sectionY, SimulationRules.DEFAULT).rendering()) {
+                    renderableSectionYs.add(sectionY);
+                }
+            }
+        }
+        renderableSectionYsDirty = false;
+    }
+
     private static void ensureLevel(Level level) {
         if (currentLevel != level) {
             currentLevel = level;
             CHUNKS.clear();
+            renderableSectionYsDirty = true;
         }
     }
 

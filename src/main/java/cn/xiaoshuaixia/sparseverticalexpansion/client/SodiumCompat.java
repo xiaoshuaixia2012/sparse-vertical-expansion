@@ -13,9 +13,13 @@ import org.apache.logging.log4j.Logger;
  * <p>This class has <em>zero</em> compile-time or runtime dependency on Sodium. Every access goes
  * through reflection, gated only on whether Sodium is present. There is no version whitelist here:
  * compatibility is verified by <em>actually</em> reaching the render section manager and resolving
- * its methods; if a Sodium build changed its internal API, that check throws instead of silently
- * disabling rendering. Hard version boundaries are declared as {@code incompatible} dependencies in
+ * its methods. Hard version boundaries are declared as {@code incompatible} dependencies in
  * neoforge.mods.toml for an earlier, clearer error.</p>
+ *
+ * <p>Reflection failures are <em>non-fatal</em>: a transient failure (renderer not ready yet, or a
+ * renderer conflict when both Sodium and Embeddium are installed) logs a warning and degrades to a
+ * no-op instead of throwing up into the section-sync payload handler and disconnecting the client. A
+ * genuine API mismatch disables this bridge for the session and logs once.</p>
  *
  * <p>All mutating entry points run on the client (render) thread.</p>
  */
@@ -25,6 +29,7 @@ public final class SodiumCompat {
     private static final String WORLD_RENDERER_CLASS = "net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer";
 
     private static volatile Boolean available;
+    private static volatile boolean failureLogged;
 
     private static Object lastManager;
     private static Method instanceNullable;
@@ -118,11 +123,7 @@ public final class SodiumCompat {
         invoke(markGraphDirty, manager, "markGraphDirty");
     }
 
-    /**
-     * Called from the Sodium mixin after the render section manager is (re)created. This is also
-     * where API compatibility is probed: if this Sodium build cannot be reached or resolved, it
-     * throws so the incompatibility surfaces immediately instead of silently dropping rendering.
-     */
+    /** Called from the Sodium mixin after the render section manager is (re)created. */
     public static void reload(Level level) {
         if (!isAvailable() || level == null) {
             return;
@@ -152,22 +153,29 @@ public final class SodiumCompat {
 
     private static Object currentManager() {
         try {
-            if (instanceNullable == null) {
-                instanceNullable = Class.forName(WORLD_RENDERER_CLASS)
-                        .getMethod("instanceNullable");
-                renderSectionManagerField = Class.forName(WORLD_RENDERER_CLASS)
-                        .getDeclaredField("renderSectionManager");
-                renderSectionManagerField.setAccessible(true);
+            Method instance = instanceNullable;
+            Field field = renderSectionManagerField;
+            if (instance == null || field == null) {
+                Class<?> clazz = Class.forName(WORLD_RENDERER_CLASS);
+                instance = clazz.getMethod("instanceNullable");
+                field = clazz.getDeclaredField("renderSectionManager");
+                field.setAccessible(true);
+                instanceNullable = instance;
+                renderSectionManagerField = field;
             }
-            Object renderer = instanceNullable.invoke(null);
+            Object renderer = instance.invoke(null);
             if (renderer == null) {
                 // No renderer attached yet (e.g. before a world is loaded); not an error.
                 return null;
             }
-            return renderSectionManagerField.get(renderer);
+            return field.get(renderer);
         } catch (Throwable t) {
-            throw new IllegalStateException(
-                    "SVE Sodium compat: unable to reach the Sodium render section manager; this Sodium build is incompatible.", t);
+            instanceNullable = null;
+            renderSectionManagerField = null;
+            logFailure(
+                    "SVE Sodium compat: unable to reach the Sodium render section manager; sparse sections will not render via Sodium until it becomes reachable.",
+                    t);
+            return null;
         }
     }
 
@@ -179,40 +187,61 @@ public final class SodiumCompat {
             scheduleRebuild = clazz.getMethod("scheduleRebuild", int.class, int.class, int.class, boolean.class);
             markGraphDirty = clazz.getMethod("markGraphDirty");
         } catch (Throwable t) {
-            throw new IllegalStateException(
-                    "SVE Sodium compat: RenderSectionManager API is incompatible; this Sodium build cannot render sparse sections.", t);
+            available = false;
+            logFailure(
+                    "SVE Sodium compat: RenderSectionManager API is incompatible; Sodium sparse-section rendering disabled for this session.",
+                    t);
         }
     }
 
     private static void invoke(Method method, Object target, Object arg, String name) {
+        if (method == null) {
+            return;
+        }
         try {
             method.invoke(target, arg);
         } catch (Throwable t) {
-            throw new IllegalStateException("SVE Sodium compat: " + name + " failed", t);
+            logFailure("SVE Sodium compat: " + name + " failed", t);
         }
     }
 
     private static void invoke(Method method, Object target, String name) {
+        if (method == null) {
+            return;
+        }
         try {
             method.invoke(target);
         } catch (Throwable t) {
-            throw new IllegalStateException("SVE Sodium compat: " + name + " failed", t);
+            logFailure("SVE Sodium compat: " + name + " failed", t);
         }
     }
 
     private static void invoke(Method method, Object target, int a, int b, int c, String name) {
+        if (method == null) {
+            return;
+        }
         try {
             method.invoke(target, a, b, c);
         } catch (Throwable t) {
-            throw new IllegalStateException("SVE Sodium compat: " + name + " failed", t);
+            logFailure("SVE Sodium compat: " + name + " failed", t);
         }
     }
 
     private static void invoke(Method method, Object target, int a, int b, int c, boolean d, String name) {
+        if (method == null) {
+            return;
+        }
         try {
             method.invoke(target, a, b, c, d);
         } catch (Throwable t) {
-            throw new IllegalStateException("SVE Sodium compat: " + name + " failed", t);
+            logFailure("SVE Sodium compat: " + name + " failed", t);
+        }
+    }
+
+    private static void logFailure(String message, Throwable cause) {
+        if (!failureLogged) {
+            failureLogged = true;
+            LOGGER.warn(message, cause);
         }
     }
 }

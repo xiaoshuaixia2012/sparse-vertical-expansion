@@ -13,8 +13,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.chunk.LevelChunk;
 
 public final class SveClientPayloadHandler {
-    private static net.minecraft.client.multiplayer.ClientLevel lastLevel;
-    private static int lastVisibleMinY = Integer.MIN_VALUE;
     private SveClientPayloadHandler() {
     }
 
@@ -49,17 +47,11 @@ public final class SveClientPayloadHandler {
     public static void markSectionDirty(int blockX, int blockY, int blockZ) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.levelRenderer != null) {
-            int cameraY = minecraft.getCameraEntity() == null
-                    ? minecraft.level.getMinBuildHeight()
-                    : minecraft.getCameraEntity().getBlockY();
-            int visibleMinY = SveRenderer.visibleMinY(
-                    minecraft.level, cameraY, minecraft.level.getSectionsCount());
-            if (lastLevel != minecraft.level || lastVisibleMinY != visibleMinY) {
-                lastLevel = minecraft.level;
-                lastVisibleMinY = visibleMinY;
-                minecraft.levelRenderer.allChanged();
-                return;
-            }
+            // The extended-Y render grid (ViewAreaMixin.repositionCamera) is re-anchored around the camera
+            // every frame and marks moved sections dirty on re-origin, so a block update only needs the
+            // targeted setSectionDirty. The previous allChanged() full re-render here fired on every
+            // visibleMinY boundary crossing (e.g. a camera standing at y=495/496) and froze the frame for
+            // ~500-800ms per placement.
             minecraft.levelRenderer.setSectionDirty(
                     SectionPos.blockToSectionCoord(blockX),
                     SectionPos.blockToSectionCoord(blockY),

@@ -14,8 +14,13 @@ import org.apache.logging.log4j.Logger;
  * ({@code org.embeddedt.embeddium.impl.*}, {@code EmbeddiumWorldRenderer}, {@code WorldSlice},
  * {@code ChunkUpdateType} enum), so this bridge is kept separate. The architecture (reflection
  * bridge + optional mixins) is the same, and like {@link SodiumCompat} it has no version whitelist:
- * compatibility is verified by actually reaching the manager and resolving its methods, throwing on
- * mismatch. Hard version boundaries live in neoforge.mods.toml.</p>
+ * compatibility is verified by actually reaching the manager and resolving its methods. Hard version
+ * boundaries live in neoforge.mods.toml.</p>
+ *
+ * <p>Reflection failures are <em>non-fatal</em>: a transient failure (renderer not ready yet, or a
+ * renderer conflict when both Sodium and Embeddium are installed) logs a warning and degrades to a
+ * no-op instead of throwing up into the section-sync payload handler and disconnecting the client. A
+ * genuine API mismatch disables this bridge for the session and logs once.</p>
  */
 public final class EmbeddiumCompat {
     private static final Logger LOGGER = LogManager.getLogger("sparse_vertical_expansion/embeddium-compat");
@@ -23,6 +28,7 @@ public final class EmbeddiumCompat {
     private static final String WORLD_RENDERER_CLASS = "org.embeddedt.embeddium.impl.render.EmbeddiumWorldRenderer";
 
     private static volatile Boolean available;
+    private static volatile boolean failureLogged;
 
     private static Object lastManager;
     private static Method instanceNullable;
@@ -139,22 +145,29 @@ public final class EmbeddiumCompat {
 
     private static Object currentManager() {
         try {
-            if (instanceNullable == null) {
-                instanceNullable = Class.forName(WORLD_RENDERER_CLASS)
-                        .getMethod("instanceNullable");
-                renderSectionManagerField = Class.forName(WORLD_RENDERER_CLASS)
-                        .getDeclaredField("renderSectionManager");
-                renderSectionManagerField.setAccessible(true);
+            Method instance = instanceNullable;
+            Field field = renderSectionManagerField;
+            if (instance == null || field == null) {
+                Class<?> clazz = Class.forName(WORLD_RENDERER_CLASS);
+                instance = clazz.getMethod("instanceNullable");
+                field = clazz.getDeclaredField("renderSectionManager");
+                field.setAccessible(true);
+                instanceNullable = instance;
+                renderSectionManagerField = field;
             }
-            Object renderer = instanceNullable.invoke(null);
+            Object renderer = instance.invoke(null);
             if (renderer == null) {
                 // No renderer attached yet (e.g. before a world is loaded); not an error.
                 return null;
             }
-            return renderSectionManagerField.get(renderer);
+            return field.get(renderer);
         } catch (Throwable t) {
-            throw new IllegalStateException(
-                    "SVE Embeddium compat: unable to reach the Embeddium render section manager; this Embeddium build is incompatible.", t);
+            instanceNullable = null;
+            renderSectionManagerField = null;
+            logFailure(
+                    "SVE Embeddium compat: unable to reach the Embeddium render section manager; sparse sections will not render via Embeddium until it becomes reachable.",
+                    t);
+            return null;
         }
     }
 
@@ -166,40 +179,61 @@ public final class EmbeddiumCompat {
             scheduleRebuild = clazz.getMethod("scheduleRebuild", int.class, int.class, int.class, boolean.class);
             markGraphDirty = clazz.getMethod("markGraphDirty");
         } catch (Throwable t) {
-            throw new IllegalStateException(
-                    "SVE Embeddium compat: RenderSectionManager API is incompatible; this Embeddium build cannot render sparse sections.", t);
+            available = false;
+            logFailure(
+                    "SVE Embeddium compat: RenderSectionManager API is incompatible; Embeddium sparse-section rendering disabled for this session.",
+                    t);
         }
     }
 
     private static void invoke(Method method, Object target, Object arg, String name) {
+        if (method == null) {
+            return;
+        }
         try {
             method.invoke(target, arg);
         } catch (Throwable t) {
-            throw new IllegalStateException("SVE Embeddium compat: " + name + " failed", t);
+            logFailure("SVE Embeddium compat: " + name + " failed", t);
         }
     }
 
     private static void invoke(Method method, Object target, String name) {
+        if (method == null) {
+            return;
+        }
         try {
             method.invoke(target);
         } catch (Throwable t) {
-            throw new IllegalStateException("SVE Embeddium compat: " + name + " failed", t);
+            logFailure("SVE Embeddium compat: " + name + " failed", t);
         }
     }
 
     private static void invoke(Method method, Object target, int a, int b, int c, String name) {
+        if (method == null) {
+            return;
+        }
         try {
             method.invoke(target, a, b, c);
         } catch (Throwable t) {
-            throw new IllegalStateException("SVE Embeddium compat: " + name + " failed", t);
+            logFailure("SVE Embeddium compat: " + name + " failed", t);
         }
     }
 
     private static void invoke(Method method, Object target, int a, int b, int c, boolean d, String name) {
+        if (method == null) {
+            return;
+        }
         try {
             method.invoke(target, a, b, c, d);
         } catch (Throwable t) {
-            throw new IllegalStateException("SVE Embeddium compat: " + name + " failed", t);
+            logFailure("SVE Embeddium compat: " + name + " failed", t);
+        }
+    }
+
+    private static void logFailure(String message, Throwable cause) {
+        if (!failureLogged) {
+            failureLogged = true;
+            LOGGER.warn(message, cause);
         }
     }
 }

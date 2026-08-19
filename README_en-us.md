@@ -4,7 +4,7 @@
 
 Sparse Vertical Expansion (SVE) is an experimental Minecraft mod currently supporting Minecraft 1.21.1 on NeoForge. It gives selected chunk regions on-demand access to heights far beyond vanilla without increasing the entire dimension's continuous build height. Each chunk can reach approximately ±8 million blocks, while the default limit is approximately ±2 million blocks.
 
-> Current version: `0.1.1-beta.1`. **Back up your worlds first** and use this only in test worlds.  
+> Current version: `0.1.2-beta.1`. **Back up your worlds first** and use this only in test worlds.  
 > This version is compatible with Sodium `0.8.12/0.8.13` and Embeddium `1.0.x` (both beta-stage). Other versions are untested, and **other renderer-replacement mods are incompatible**.
 
 - Design: xiaoshuaixia
@@ -14,6 +14,7 @@ Sparse Vertical Expansion (SVE) is an experimental Minecraft mod currently suppo
 
 - Normal chunks continue to use vanilla `Y=-64..319` and the vanilla contiguous section array.
 - Extended sections use sparse storage keyed by `int sectionY`; empty heights between sections allocate no storage.
+- Optional per-section simulation rules that greatly reduce lag.
 - An empty section is automatically reclaimed after its last non-air block is removed.
 - Extended data is saved in chunk NBT and survives leaving and re-entering the world.
 - Each chunk or chunk group can have an independent vertical build region; regions cannot overlap.
@@ -62,12 +63,13 @@ Configuration can only be changed by the server or the owner of a single-player 
 ## Compatibility and Limitations
 
 - Currently supports only Minecraft 1.21.1, NeoForge, and Java 21.
-- The Sodium `0.8.12/0.8.13` and Embeddium `1.0.x` sparse-section compatibility layers are implemented (optional reflection bridge + optional mixins; these mods are never bundled, and the vanilla path is untouched when they are absent). Shaders have been verified (including shadows); Iris compatibility is still being tested.
+- Sodium `0.8.12/0.8.13` and Embeddium `1.0.x` compatibility is implemented; shaders have been verified.
+- Sable physics compatibility is implemented: Create Aeronautics physical structures can collide with blocks at extended heights.
 - Block entities are not supported at extended heights yet.
-- Sparse lighting is implemented (consistent across vanilla/Sodium/Embeddium): separated sky and block light, computed lazily once when a player is near and then frozen (no real-time re-propagation). Light sources illuminate their surroundings and solid blocks cast correct shadows. Light propagation across empty gaps (between floating islands) and simulation-side light (mob spawning etc.) still have limits; see the handoff doc.
+- Light updates are implemented.
 - Scheduled ticks, random ticks, fluid ticks, redstone, mob spawning, weather, and other segmented simulation rules are not implemented yet.
 - The experimental double-coordinate mode is not implemented yet.
-- Create, Valkyrien Skies, and Aeronautics compatibility is outside the guarantees of this beta.
+- Create and Valkyrien Skies compatibility is outside the guarantees of this beta; Create Aeronautics/Offroad physics collision compatibility (based on Sable) is provided, but block entities (e.g. Create machinery) are not supported yet.
 
 ## Installation and Building
 

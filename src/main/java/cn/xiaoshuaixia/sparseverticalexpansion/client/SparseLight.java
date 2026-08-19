@@ -17,7 +17,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
  * Client-side read path for SVE sparse-section light, shared by the vanilla renderer. It mirrors vanilla
  * {@code LevelRenderer#getLightColor}: {@code sky << 20 | block << 4}, with block light floored at the block's own
  * light emission. Returns {@code -1} when the position is not extended or its light has not been computed yet, so the
- * caller can fall back to the previous unlit behaviour.
+ * caller can fall back to the previous unlit behaviour (FULL_BRIGHT on the vanilla renderer).
  */
 public final class SparseLight {
     private SparseLight() {

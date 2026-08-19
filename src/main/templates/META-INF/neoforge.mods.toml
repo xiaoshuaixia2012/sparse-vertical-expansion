@@ -62,6 +62,11 @@ config="${mod_id}-sodium.mixins.json"
 [[mixins]]
 config="${mod_id}-embeddium.mixins.json"
 
+# Optional Sable (physics engine) compatibility mixins, gated on Sable's presence. Patches
+# LevelAccelerator so Aeronautics/Offroad physics see SVE sparse sections at extended Y.
+[[mixins]]
+config="${mod_id}-sable.mixins.json"
+
 # The [[accessTransformers]] block allows you to declare where your AT file is.
 # If this block is omitted, a fallback attempt will be made to load an AT from META-INF/accesstransformer.cfg
 #[[accessTransformers]]

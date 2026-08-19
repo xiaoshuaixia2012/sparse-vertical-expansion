@@ -1,0 +1,14 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "cn.xiaoshuaixia.sparseverticalexpansion.mixin.compat.sable",
+  "plugin": "cn.xiaoshuaixia.sparseverticalexpansion.mixin.compat.sable.SableCompatMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "SableLevelAcceleratorMixin",
+    "SablePhysicsChunkTicketManagerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
